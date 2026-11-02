@@ -1,0 +1,20 @@
+
+build/6_behavioral.old.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <scale>:
+   0:	push	{r3, r4, r5, r6, r7, lr}
+   2:	mov	r5, r1
+   4:	mov	r7, r2
+   6:	subs	r4, r0, #4
+   8:	movs	r6, #0
+   a:	cmp	r6, r5
+   c:	blt.n	10 <scale+0x10>
+   e:	pop	{r3, r4, r5, r6, r7, pc}
+  10:	ldr.w	r0, [r4, #4]!
+  14:	blx	r7
+  16:	adds	r6, #1
+  18:	str	r0, [r4, #0]
+  1a:	b.n	a <scale+0xa>

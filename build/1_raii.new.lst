@@ -1,0 +1,16 @@
+
+build/1_raii.new.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <write_reg(unsigned int)>:
+   0:	ldr	r3, [pc, #12]	@ (10 <write_reg(unsigned int)+0x10>)
+   2:	movs	r2, #1
+   4:	str	r2, [r3, #0]
+   6:	movs	r2, #0
+   8:	str	r0, [r3, #4]
+   a:	str	r2, [r3, #0]
+   c:	bx	lr
+   e:	nop
+  10:	.word	0x00000000

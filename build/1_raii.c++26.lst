@@ -1,0 +1,17 @@
+
+build/1_raii.c++26.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <write_reg(unsigned int)>:
+   0:	movw	r1, #0
+   4:	movt	r1, #0
+   8:	movs	r2, #1
+   a:	str	r2, [r1, #0]
+   c:	movw	r2, #0
+  10:	movt	r2, #0
+  14:	str	r0, [r2, #0]
+  16:	movs	r0, #0
+  18:	str	r0, [r1, #0]
+  1a:	bx	lr

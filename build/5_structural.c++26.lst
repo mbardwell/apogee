@@ -1,0 +1,12 @@
+
+build/5_structural.c++26.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <crc_step(unsigned char, unsigned char)>:
+   0:	eors	r0, r1
+   2:	movw	r1, #0
+   6:	movt	r1, #0
+   a:	ldrb	r0, [r1, r0]
+   c:	bx	lr

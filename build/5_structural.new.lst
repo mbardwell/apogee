@@ -1,0 +1,12 @@
+
+build/5_structural.new.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <crc_step(unsigned char, unsigned char)>:
+   0:	ldr	r3, [pc, #4]	@ (8 <crc_step(unsigned char, unsigned char)+0x8>)
+   2:	eors	r0, r1
+   4:	ldrb	r0, [r3, r0]
+   6:	bx	lr
+   8:	.word	0x00000000

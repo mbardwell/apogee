@@ -1,0 +1,10 @@
+
+build/4_creational.c++26.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <radio()>:
+   0:	movw	r0, #0
+   4:	movt	r0, #0
+   8:	bx	lr

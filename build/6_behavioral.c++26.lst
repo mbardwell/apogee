@@ -1,0 +1,17 @@
+
+build/6_behavioral.c++26.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <gain(int*, int)>:
+   0:	cmp	r1, #1
+   2:	it	lt
+   4:	bxlt	lr
+   6:	nop
+   8:	ldr	r2, [r0, #0]
+   a:	subs	r1, #1
+   c:	mov.w	r2, r2, lsl #1
+  10:	str.w	r2, [r0], #4
+  14:	bne.n	8 <gain(int*, int)+0x8>
+  16:	bx	lr

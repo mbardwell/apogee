@@ -1,0 +1,10 @@
+
+build/4_creational.new.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <radio()>:
+   0:	ldr	r0, [pc, #0]	@ (4 <radio()+0x4>)
+   2:	bx	lr
+   4:	.word	0x00000000

@@ -1,0 +1,819 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Apogee</title>
+<meta name="description" content="An Arm assembly game: fill the blanks in real Cortex-M4 output and see how C++14 to C++26 beats C and C++03 on size and speed.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --void: #10142e;
+  --void-2: #161b3f;
+  --panel: #1c2252;
+  --line: #2e3672;
+  --star: #e9e6ff;
+  --muted: #9a9ed0;
+  --amber: #ffb547;
+  --ice: #7fe0e8;
+  --rose: #ff7a9c;
+  --good: #8ff0b0;
+  --sans: "Chakra Petch", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0; background: var(--void); color: var(--star);
+  font: 16px/1.55 var(--sans);
+  background-image:
+    radial-gradient(1px 1px at 12% 22%, #fff8 50%, transparent 51%),
+    radial-gradient(1px 1px at 67% 8%, #fff6 50%, transparent 51%),
+    radial-gradient(1px 1px at 82% 41%, #fff5 50%, transparent 51%),
+    radial-gradient(1px 1px at 31% 63%, #fff4 50%, transparent 51%),
+    radial-gradient(1px 1px at 91% 77%, #fff6 50%, transparent 51%),
+    radial-gradient(1px 1px at 5% 88%, #fff5 50%, transparent 51%),
+    radial-gradient(1.5px 1.5px at 48% 35%, #fff9 50%, transparent 51%);
+  background-attachment: fixed;
+}
+a { color: var(--ice); }
+:focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+/* header */
+header.top { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; padding: 22px 0 6px; flex-wrap: wrap; }
+.brand h1 { margin: 0; font-weight: 700; font-size: 44px; line-height: 1; letter-spacing: .02em; }
+.brand p { margin: 6px 0 0; color: var(--muted); font-size: 15px; max-width: 46ch; }
+.gauges { display: flex; gap: 26px; }
+.gauge { text-align: right; }
+.gauge b { display: block; font-size: 28px; font-weight: 600; line-height: 1.1; font-variant-numeric: tabular-nums; }
+.gauge span { color: var(--muted); font-size: 13px; }
+.gauge.mass b { color: var(--ice); }
+
+/* orbit */
+.orbit { margin: 4px 0 8px; }
+.orbit svg { width: 100%; height: auto; display: block; }
+.wp { cursor: pointer; }
+.wp[aria-disabled="true"] { cursor: not-allowed; }
+.wp text { font: 600 13px var(--sans); fill: var(--muted); }
+.wp.current text { fill: var(--amber); }
+.wp.done text { fill: var(--ice); }
+.wp:focus { outline: none; }
+.wp:focus-visible circle.ring { stroke: var(--amber); stroke-width: 3; }
+
+/* level */
+.level { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: 22px; padding-bottom: 28px; }
+@media (max-width: 900px) { .level { grid-template-columns: minmax(0, 1fr); } .brand h1 { font-size: 36px; } }
+.card { background: var(--void-2); border: 1px solid var(--line); border-radius: 10px; padding: 18px 20px; }
+.brief .cat { color: var(--amber); font-weight: 600; font-size: 14px; margin: 0; }
+.brief h2 { margin: 2px 0 8px; font-size: 26px; line-height: 1.2; font-weight: 600; }
+.brief p { margin: 0 0 12px; max-width: 62ch; }
+.std { display: inline-block; font-size: 13px; padding: 2px 10px; border-radius: 999px; border: 1px solid var(--ice); color: var(--ice); margin-bottom: 12px; }
+pre, code { font-family: var(--mono); }
+pre.src { margin: 0; background: var(--void); border: 1px solid var(--line); border-radius: 8px; padding: 12px 14px; font-size: 12.5px; line-height: 1.6; overflow-x: auto; color: #cfd2f7; }
+.src .cm { color: #7b80b8; }
+.src .kw { color: var(--ice); }
+.refs { margin: 12px 0 0; color: var(--muted); font-size: 13px; }
+
+/* asm */
+.asmhead { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; flex-wrap: wrap; margin-bottom: 8px; }
+.asmhead h3 { margin: 0; font-size: 17px; font-weight: 600; }
+.asmhead small { color: var(--muted); font-family: var(--mono); font-size: 12px; }
+.asm { background: var(--void); border: 1px solid var(--line); border-radius: 8px; padding: 10px 0; font: 13.5px/1.75 var(--mono); overflow-x: auto; }
+.asm .ln { display: grid; grid-template-columns: 34px max-content; white-space: pre; padding-right: 14px; }
+.asm .ln.err { background: #ff7a9c1f; }
+.asm .no { color: #4f568f; text-align: right; padding-right: 12px; user-select: none; }
+.asm .lbl { color: var(--star); font-weight: 600; }
+.asm .op { color: var(--ice); }
+.asm .dir { color: #c7a8ff; }
+.asm .c { color: #7b80b8; }
+.blank {
+  font: inherit; color: var(--amber); background: #ffb5471a; border: 0; border-bottom: 2px solid var(--amber);
+  border-radius: 3px 3px 0 0; padding: 0 4px; margin: 0; min-width: 4ch; text-align: center;
+}
+.blank::placeholder { color: #ffb54788; }
+.blank.ok { color: var(--good); border-color: var(--good); background: #8ff0b01a; }
+.blank.bad { color: var(--rose); border-color: var(--rose); background: #ff7a9c1f; }
+.bank { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0 4px; }
+.bank button { font: 13px var(--mono); color: var(--star); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 5px 10px; cursor: pointer; }
+.bank button:hover { border-color: var(--amber); }
+.bank-note { color: var(--muted); font-size: 13px; margin: 0; }
+.actions { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; align-items: center; }
+.btn { font: 600 15px var(--sans); border-radius: 8px; padding: 9px 18px; cursor: pointer; border: 1px solid var(--line); background: var(--panel); color: var(--star); }
+.btn.primary { background: var(--amber); color: #1a1530; border-color: var(--amber); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn:disabled { opacity: .5; cursor: default; }
+.console { margin-top: 12px; font: 12.5px/1.6 var(--mono); background: #0b0e22; border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; min-height: 2.6em; white-space: pre-wrap; }
+.console .e { color: var(--rose); }
+.console .h { color: var(--amber); }
+.console .s { color: var(--good); }
+
+/* debrief */
+.debrief { grid-column: 1 / -1; }
+.debrief h3 { margin: 0 0 4px; font-size: 22px; font-weight: 600; }
+.debrief > p { margin: 0 0 14px; max-width: 75ch; }
+.compare { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 760px) { .compare { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 640px) { .wp .nm { display: none; } .wp text { font-size: 26px; } .gauges { width: 100%; justify-content: flex-start; } .gauge { text-align: left; } }
+.compare h4 { margin: 0 0 6px; font-size: 15px; font-weight: 600; }
+.compare .old h4 { color: var(--rose); }
+.compare .new h4 { color: var(--ice); }
+.compare .asm { font-size: 12.5px; }
+.metrics { margin-top: 16px; display: grid; gap: 12px; }
+.metric .mh { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 3px; }
+.metric .mh span { color: var(--muted); }
+.bar { display: grid; grid-template-columns: 70px 1fr 90px; align-items: center; gap: 8px; font: 12.5px var(--mono); margin: 2px 0; }
+.bar .track { height: 12px; background: var(--void); border-radius: 3px; overflow: hidden; }
+.bar .fill { height: 100%; border-radius: 3px; transition: width .6s ease; }
+.bar.o .fill { background: var(--rose); }
+.bar.n .fill { background: var(--ice); }
+.bar .v { text-align: right; font-variant-numeric: tabular-nums; }
+.next-row { display: flex; justify-content: flex-end; margin-top: 16px; }
+
+/* finale */
+.finale { text-align: center; padding: 30px 20px; }
+.finale h2 { font-size: 34px; margin: 0 0 8px; }
+.finale p { max-width: 60ch; margin: 0 auto 12px; color: var(--muted); }
+footer { color: var(--muted); font-size: 13px; padding: 10px 0 40px; border-top: 1px solid var(--line); }
+footer p { max-width: 90ch; margin: 8px 0; }
+
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div class="brand">
+      <h1>Apogee</h1>
+      <p>Trim the Apogee-7 probe's flight software one Arm Cortex-M4 listing at a time. Every byte you save is mass the probe doesn't have to lift.</p>
+    </div>
+    <div class="gauges">
+      <div class="gauge mass"><b id="g-mass">0 B</b><span>mass saved</span></div>
+      <div class="gauge"><b id="g-score">0</b><span>score</span></div>
+    </div>
+  </header>
+
+  <nav class="orbit" aria-label="Levels">
+    <svg id="orbit" viewBox="0 0 800 210" role="group"></svg>
+  </nav>
+
+  <main id="main"></main>
+
+  <footer>
+    <p>Every listing is real output from the GNU Arm Embedded Toolchain, <code>arm-none-eabi-gcc 13.2.1</code>, with <code>-mcpu=cortex-m4 -mthumb -Os</code>. Literal-pool loads are shown as <code>ldr rX, =symbol</code> and comments are added; nothing else is changed. The C++ side compiles to the same bytes as C++23, and to the same instructions in C++26 mode (checked with Clang 18). Run <code>build.sh</code> in the repository to regenerate every number.</p>
+    <p>Level categories follow <a href="https://github.com/mbardwell/kestral">Kestrel-1</a>. Progress is saved in this browser. <button class="btn" id="reset" style="padding:3px 10px;font-size:13px">Reset progress</button></p>
+  </footer>
+</div>
+
+<script>
+"use strict";
+
+/* ---------------------------------------------------------------
+   Level data. In `asm`, {n} marks blank n. Lines are real compiler
+   output (see build/*.lst) with comments added.
+---------------------------------------------------------------- */
+const LEVELS = [
+{
+  id: "raii", short: "RAII", cat: "RAII", pattern: "Bus lock guard", title: "Power bus arbiter",
+  std: "C++20 constinit",
+  brief: "The power bus is shared by every subsystem, so each register write takes a lock and the lock's destructor gives it back. In C++03 the global mutex needed a constructor that ran at boot. Make it constexpr and constinit and the boot code disappears.",
+  src:
+`struct Mutex { constexpr Mutex() : owner(0) {}
+               volatile unsigned owner; };
+struct Lock {
+  Mutex& m;
+  explicit Lock(Mutex& m_) : m(m_) { m.owner = 1; }
+  ~Lock() { m.owner = 0; }
+};
+constinit Mutex bus;      // C++20: no runtime init allowed
+volatile unsigned reg;
+void write_reg(unsigned v) { Lock l(bus); reg = v; }`,
+  asm: [
+    "write_reg:              @ r0 = v",
+    "    ldr   r3, =bus      @ bus.owner, reg sits at +4",
+    "    movs  r2, #{0}       @ Lock(): take the bus",
+    "    str   r2, [r3]",
+    "    movs  r2, #{1}       @ ~Lock(): value that frees it",
+    "    str   r0, [r3, #4]  @ reg = v",
+    "    str   r2, [r3]      @ ~Lock() runs at scope exit",
+    "    bx    lr",
+    "",
+    "    .section .{2}      @ where constinit bus lives",
+  ],
+  blanks: [
+    { num: true, ans: [1], hint: "The constructor marks the bus as owned: owner = 1.", err: "Lock's constructor sets owner to 1" },
+    { num: true, ans: [0], hint: "The destructor writes owner = 0.", err: "~Lock writes owner = 0" },
+    { ans: ["bss"], hint: "A zero-initialised object needs no flash image. It goes in the section the startup code clears.", err: "zero-initialised data goes in .bss" },
+  ],
+  bank: ["0", "1", "2", "bss", "data", "rodata", "init_array"],
+  old: { label: "C++03 (no constexpr)",
+    asm: [
+      "write_reg:              @ same 7 instructions",
+      "    ldr   r3, =bus",
+      "    movs  r2, #1",
+      "    str   r2, [r3]",
+      "    movs  r2, #0",
+      "    str   r0, [r3, #4]",
+      "    str   r2, [r3]",
+      "    bx    lr",
+      "_GLOBAL__sub_I_bus:     @ boot-time constructor",
+      "    ldr   r3, =bus",
+      "    movs  r2, #0",
+      "    str   r2, [r3]",
+      "    bx    lr",
+      "    .section .init_array",
+      "    .word _GLOBAL__sub_I_bus",
+    ],
+    flash: 36, ram: 8, run: 7, runNote: "per call, plus a constructor call at boot" },
+  now: { flash: 20, ram: 8, run: 7, runNote: "per call, nothing at boot" },
+  why: "RAII costs nothing per call: the lock and unlock are the same stores you would hand-write in C, but the compiler can't forget the unlock. The saving is at boot. C++03 had no way to promise the mutex was constant-initialised, so GCC emitted a 12-byte constructor and an .init_array entry. C++11 constexpr constructors allow constant initialisation, and C++20 constinit makes it a compile error if you don't get it.",
+  refs: "ISO/IEC 14882:2020 [dcl.constinit], [basic.start.static]. Stroustrup, The Design and Evolution of C++, §16.5.",
+},
+{
+  id: "crtp", short: "CRTP", cat: "CRTP", pattern: "Static driver interface", title: "Beacon transmitter",
+  std: "C++20 concepts",
+  brief: "The beacon sends one character, 'K', through the UART. In C the driver interface is a table of function pointers (C++03 virtual functions compile to the same thing). With CRTP the call is resolved at compile time, and a C++20 concept checks the driver's contract for zero bytes.",
+  src:
+`template <class D> struct UartBase {
+  void put(char c) { static_cast<D*>(this)->put_impl(c); }
+};
+struct Stm32Uart : UartBase<Stm32Uart> {
+  void put_impl(char c) {
+    *reinterpret_cast<volatile unsigned*>(0x40011004) = c; }
+};
+template <class U>
+concept Uart = requires(U u, char c) { u.put(c); };
+static_assert(Uart<Stm32Uart>);   // checked, 0 bytes
+void beacon(Stm32Uart& u) { u.put('K'); }`,
+  asm: [
+    "beacon:                   @ r0 = &u, never read",
+    "    ldr   r3, =0x40011000 @ USART1 base",
+    "    movs  r2, #{0}         @ the character 'K'",
+    "    {1}   r2, [r3, #{2}]   @ data register: put() inlined",
+    "    bx    lr",
+  ],
+  blanks: [
+    { num: true, ans: [75], hint: "ASCII 'K' is 75 (0x4B). You can type 75, 0x4b or 'K'.", err: "expected the ASCII code of 'K'" },
+    { ans: ["str"], hint: "Writing a register to memory is a store.", err: "writing to the UART data register is a store" },
+    { num: true, ans: [4], hint: "The data register is at 0x40011004 and the base is 0x40011000.", err: "offset from 0x40011000 to 0x40011004" },
+  ],
+  bank: ["75", "0x4b", "str", "ldr", "blx", "0", "4", "8"],
+  old: { label: "C (function-pointer table)",
+    asm: [
+      "stm32_put:",
+      "    ldr   r3, =0x40011000",
+      "    str   r1, [r3, #4]",
+      "    bx    lr",
+      "stm32_ops:              @ the \"vtable\"",
+      "    .word stm32_put",
+      "beacon:",
+      "    ldr   r3, [r0]      @ u->ops",
+      "    movs  r1, #75",
+      "    ldr   r3, [r3]      @ ops->put",
+      "    bx    r3            @ indirect jump",
+    ],
+    flash: 24, ram: 0, run: 7, runNote: "two pointer loads and an indirect branch; each object also carries a 4-byte ops pointer" },
+  now: { flash: 12, ram: 0, run: 4, runNote: "direct store, no branch" },
+  why: "An indirect branch can't be inlined, and on a Cortex-M4 every taken branch refills the pipeline. CRTP gives the same 'many drivers, one interface' design, but the compiler sees the concrete type, so put() collapses into a single store. Half the flash, fewer than two-thirds of the instructions, and no ops pointer in every object.",
+  refs: "Coplien, 'Curiously Recurring Template Patterns', C++ Report, Feb 1995. ISO/IEC 14882:2020 [temp.concept]. ISO/IEC TR 18015:2006 §2.3.3.",
+},
+{
+  id: "di", short: "DI", cat: "Dependency injection", pattern: "Compile-time policy", title: "Altimeter",
+  std: "C++17 auto template parameter",
+  brief: "The altimeter reads a barometric sensor and scales the result. Injecting the sensor keeps it testable. In C you store a function pointer in the object. In C++17 you pass the function itself as an auto template parameter, so swapping in a test double is still one line, and the flight build pays nothing.",
+  src:
+`inline int baro_read() {
+  return *reinterpret_cast<volatile int*>(0x40012000); }
+
+template <auto Read>            // C++17
+struct Altimeter {              // empty: no pointer stored
+  int altitude() const { return Read() * 2; }
+};
+Altimeter<baro_read> alt;       // test: Altimeter<fake_read>
+int altitude() { return alt.altitude(); }`,
+  asm: [
+    "altitude:",
+    "    ldr   r3, =0x40012000 @ baro register, injected at compile time",
+    "    {0}   r0, [r3]        @ Read(), inlined",
+    "    {1}  r0, r0, #{2}     @ * 2",
+    "    bx    lr",
+  ],
+  blanks: [
+    { ans: ["ldr"], hint: "Reading the sensor register is a load.", err: "reading the sensor is a load" },
+    { ans: ["lsls", "lsl"], hint: "Multiplying by 2 is a left shift by one place.", err: "multiply by 2 is a logical shift left" },
+    { num: true, ans: [1], hint: "x * 2 == x << 1.", err: "x * 2 is a shift by 1" },
+  ],
+  bank: ["ldr", "str", "lsls", "lsrs", "mul", "1", "2"],
+  old: { label: "C (stored function pointer)",
+    asm: [
+      "baro_read:",
+      "    ldr   r3, =0x40012000",
+      "    ldr   r0, [r3]",
+      "    bx    lr",
+      "altitude:",
+      "    push  {r3, lr}",
+      "    ldr   r3, =alt",
+      "    ldr   r3, [r3]      @ alt.read, held in RAM",
+      "    blx   r3            @ indirect call",
+      "    lsls  r0, r0, #1",
+      "    pop   {r3, pc}",
+      "    .data",
+      "alt: .word baro_read",
+    ],
+    flash: 32, ram: 4, run: 9, runNote: "stack push and pop, plus an indirect call" },
+  now: { flash: 12, ram: 1, run: 4, runNote: "no call at all" },
+  why: "Run-time injection makes the dependency data: a pointer in RAM that the CPU must load and jump through every time. Compile-time injection makes it a type, so the optimiser inlines the sensor read and the stack frame vanishes. The empty Altimeter still takes 1 byte as a standalone object; as a member marked [[no_unique_address]] (C++20) it takes none.",
+  refs: "Fowler, 'Inversion of Control Containers and the Dependency Injection pattern', 2004. Alexandrescu, Modern C++ Design, ch. 1. ISO/IEC 14882:2017 [temp.param].",
+},
+{
+  id: "creational", short: "Creational", cat: "GoF Creational", pattern: "Singleton", title: "Radio",
+  std: "C++14 constexpr loops, C++20 constinit",
+  brief: "There is one radio, and its channel is derived from the 437 MHz downlink. The classic C++ singleton is a function-local static, which makes the compiler emit a thread-safe guard checked on every call. With a C++14 constexpr function and a C++20 constinit object, the compiler computes the channel and there's nothing to guard.",
+  src:
+`constexpr int channel_for(int mhz) {   // loops: C++14
+  int c = 0;
+  while (mhz > 400) { mhz -= 25; ++c; }
+  return c;
+}
+struct Radio {
+  constexpr Radio() : ch(channel_for(437)) {}
+  int ch;
+};
+constinit Radio r;
+Radio& radio() { return r; }`,
+  asm: [
+    "radio:",
+    "    {0}   r0, =r          @ return &r",
+    "    bx    lr",
+    "",
+    "    .data",
+    "r:  .word {1}             @ ch = channel_for(437), done by the compiler",
+    "",
+    "@ calls to __cxa_guard_acquire: {2}",
+  ],
+  blanks: [
+    { ans: ["ldr"], hint: "Getting an address out of the literal pool is a load.", err: "loading an address is ldr" },
+    { num: true, ans: [2], hint: "437 > 400: subtract 25 → 412, c = 1. 412 > 400: → 387, c = 2.", err: "run channel_for(437) by hand" },
+    { num: true, ans: [0], hint: "constinit objects are initialised before any code runs. Nothing to guard.", err: "constinit needs no run-time guard" },
+  ],
+  bank: ["ldr", "str", "mov", "0", "1", "2", "3", "17"],
+  old: { label: "C++03/11 Meyers singleton",
+    asm: [
+      "radio:",
+      "    push  {r4, lr}",
+      "    ldr   r4, =guard",
+      "    ldr   r3, [r4]",
+      "    dmb   ish           @ memory barrier, every call",
+      "    lsls  r3, r3, #31",
+      "    bmi   done",
+      "    mov   r0, r4",
+      "    bl    __cxa_guard_acquire",
+      "    cbz   r0, done",
+      "    movw  r0, #437",
+      "    bl    channel_for   @ 11 more bytes of loop",
+      "    str   r0, [r4, #4]",
+      "    mov   r0, r4",
+      "    bl    __cxa_guard_release",
+      "done:",
+      "    ldr   r0, =r",
+      "    pop   {r4, pc}",
+    ],
+    flash: 72, ram: 8, run: 8, runNote: "every call, including a memory barrier; the first call also runs the guard library" },
+  now: { flash: 12, ram: 4, run: 2, runNote: "every call" },
+  why: "A function-local static must be initialised exactly once, even under threads, so GCC wraps it in a guard variable, a barrier and two runtime calls (and links __cxa_guard_* from libsupc++, not counted here). C++11 constexpr functions could only be one return statement; C++14 allowed loops, so channel_for can run in the compiler. constinit then puts the finished object straight into .data. Same singleton, 60 fewer bytes, 2 instructions per call.",
+  refs: "Gamma et al., Design Patterns, Singleton p. 127. ISO/IEC 14882:2020 [stmt.dcl] p4, [dcl.constexpr], [dcl.constinit]. N3652 (relaxed constexpr, C++14).",
+},
+{
+  id: "structural", short: "Structural", cat: "GoF Structural", pattern: "Flyweight", title: "Telemetry checksum",
+  std: "C++17 constexpr",
+  brief: "Every telemetry frame is checked with CRC-8, and all frames share one 256-entry lookup table: a flyweight. C builds the table in RAM at boot. A constexpr function lets the compiler build it, so it lives in flash, read-only, ready before reset ends.",
+  src:
+`struct Table { unsigned char v[256]; };
+constexpr Table make() {
+  Table t{};
+  for (int i = 0; i < 256; ++i) {
+    unsigned char c = i;
+    for (int b = 0; b < 8; ++b)
+      c = (c & 0x80) ? (c << 1) ^ 0x07 : (c << 1);
+    t.v[i] = c;
+  }
+  return t;
+}
+constexpr Table tab = make();    // built by the compiler
+unsigned char crc_step(unsigned char crc, unsigned char x) {
+  return tab.v[crc ^ x]; }`,
+  asm: [
+    "crc_step:                @ r0 = crc, r1 = byte",
+    "    ldr   r3, =tab       @ the shared table",
+    "    {0}   r0, r1         @ crc ^ byte",
+    "    {1}   r0, [r3, r0]   @ tab[crc ^ byte], one byte",
+    "    bx    lr",
+    "",
+    "    .section .{2}       @ tab: 256 bytes, already computed",
+  ],
+  blanks: [
+    { ans: ["eors", "eor"], hint: "XOR in Thumb is eors.", err: "crc ^ byte is an exclusive-or" },
+    { ans: ["ldrb"], hint: "The table holds bytes, so load a byte.", err: "the table holds bytes: load a byte" },
+    { ans: ["rodata"], hint: "Read-only data stays in flash.", err: "a constexpr table is read-only data" },
+  ],
+  bank: ["eors", "orrs", "ands", "ldr", "ldrb", "ldrh", "bss", "data", "rodata"],
+  old: { label: "C (table built at boot)",
+    asm: [
+      "crc_init:               @ called from main()",
+      "    push  {r4, lr}",
+      "    ldr   r4, =tab",
+      "    movs  r1, #0",
+      "outer: uxtb r3, r1",
+      "    movs  r0, #8",
+      "inner: sxtb r2, r3",
+      "    cmp   r2, #0",
+      "    ittet lt",
+      "    lsllt r2, r2, #1",
+      "    eorlt r2, r2, #7",
+      "    lslge r3, r3, #1",
+      "    uxtblt r3, r2",
+      "    it    ge",
+      "    uxtbge r3, r3",
+      "    subs  r0, #1",
+      "    bne   inner",
+      "    adds  r1, #1",
+      "    cmp   r1, #256",
+      "    strb  r3, [r4], #1",
+      "    bne   outer",
+      "    pop   {r4, pc}",
+      "crc_step:               @ identical 4 instructions",
+      "    .bss",
+      "tab: .space 256",
+    ],
+    flash: 64, ram: 256, run: 24068, runNote: "instructions at boot to fill the table" },
+  now: { flash: 268, ram: 0, run: 0, runNote: "instructions at boot" },
+  why: "The lookup itself is identical. What changes is where the table comes from. C spends 256 bytes of RAM, 52 bytes of init code and about 24,000 instructions at every reset. The constexpr table costs 256 bytes of flash instead, which on a microcontroller is usually 4 to 8 times more plentiful than RAM. Total memory drops from 320 to 268 bytes and boot is faster. You could paste a hand-generated table into C, but then nobody can check it; here the generator is the documentation.",
+  refs: "Gamma et al., Design Patterns, Flyweight p. 195. ISO/IEC 14882:2017 [expr.const], [dcl.constexpr].",
+},
+{
+  id: "behavioral", short: "Behavioral", cat: "GoF Behavioral", pattern: "Strategy", title: "Sensor gain stage",
+  std: "C++14 generic lambdas",
+  brief: "A gain stage applies a strategy to every sample in a buffer. C's generic algorithms, like qsort, take a function pointer and are compiled once, so the strategy is called through a pointer for each element. A C++ template with a C++14 generic lambda gets a fresh copy with the strategy inlined.",
+  src:
+`template <class F>
+void scale(int* b, int n, F f) {
+  for (int i = 0; i < n; ++i) b[i] = f(b[i]);
+}
+void gain(int* b, int n) {
+  scale(b, n, [](auto x) { return x * 2; });   // C++14
+}`,
+  asm: [
+    "gain:                    @ r0 = b, r1 = n",
+    "    subs  r0, #4",
+    "    movs  r3, #0         @ i = 0",
+    "loop:",
+    "    cmp   r1, r3",
+    "    bgt   body",
+    "    bx    lr",
+    "body:",
+    "    ldr   r2, [r0, #4]!  @ x = b[i]",
+    "    {0}  r2, r2, #{1}     @ the lambda, inlined: x * 2",
+    "    {2}   r2, [r0]       @ b[i] = x",
+    "    adds  r3, #1",
+    "    b     loop",
+  ],
+  blanks: [
+    { ans: ["lsls", "lsl"], hint: "x * 2 is a left shift.", err: "x * 2 is a logical shift left" },
+    { num: true, ans: [1], hint: "Shift by one place to double.", err: "doubling is a shift by 1" },
+    { ans: ["str"], hint: "Write the result back to the buffer.", err: "writing b[i] is a store" },
+  ],
+  bank: ["lsls", "asrs", "blx", "1", "2", "str", "ldr"],
+  old: { label: "C (library function + pointer)",
+    asm: [
+      "scale:                  @ r0 = b, r1 = n, r2 = f",
+      "    push  {r3-r7, lr}",
+      "    mov   r5, r1",
+      "    mov   r7, r2",
+      "    subs  r4, r0, #4",
+      "    movs  r6, #0",
+      "loop: cmp r6, r5",
+      "    blt   body",
+      "    pop   {r3-r7, pc}",
+      "body: ldr r0, [r4, #4]!",
+      "    blx   r7            @ call the strategy",
+      "    adds  r6, #1",
+      "    str   r0, [r4]",
+      "    b     loop",
+      "@ plus dbl: lsls r0, r0, #1 / bx lr",
+    ],
+    flash: 28, ram: 0, run: 9, runNote: "per sample, two of them branches through registers" },
+  now: { flash: 22, ram: 0, run: 7, runNote: "per sample" },
+  why: "The function-pointer version spends a call and a return on every sample and has to save five registers to survive them. The template version is smaller even before you count the separate dbl function C needs, and it runs about 22% fewer instructions per sample with no indirect branches. Generic lambdas (C++14) let one strategy work for int, float or fixed-point samples without writing it three times.",
+  refs: "Gamma et al., Design Patterns, Strategy p. 315. ISO/IEC 14882:2014 [expr.prim.lambda]. N3649 (generic lambdas).",
+},
+{
+  id: "state", short: "State", cat: "GoF State", pattern: "Compile-time state machine", title: "Boot sequencer",
+  std: "C++20 consteval",
+  brief: "The boot sequencer walks Off → Boot → Safe → Nominal through a fixed event script stored in flash. C walks it at run time. consteval tells the compiler it must run the same state machine itself, and the flight code only returns the answer.",
+  src:
+`enum class S : unsigned char { Off, Boot, Safe, Nominal };
+constexpr S next(S s, int e) {
+  switch (s) {
+    case S::Off:  return e == 0 ? S::Boot    : s;
+    case S::Boot: return e == 1 ? S::Safe    : s;
+    case S::Safe: return e == 2 ? S::Nominal : s;
+    default:      return s;
+  }
+}
+constexpr unsigned char boot_seq[3] = {0, 1, 2};
+consteval S run() {                      // C++20
+  S s = S::Off;
+  for (int e : boot_seq) s = next(s, e);
+  return s;
+}
+S boot_state() { return run(); }`,
+  asm: [
+    "boot_state:",
+    "    {0}  r0, #{1}         @ S::Nominal",
+    "    bx    lr",
+  ],
+  blanks: [
+    { ans: ["movs", "mov"], hint: "Put a constant into a register.", err: "loading a constant is movs" },
+    { num: true, ans: [3], hint: "Off = 0, Boot = 1, Safe = 2, Nominal = 3.", err: "count the enumerators: Off is 0" },
+  ],
+  bank: ["movs", "ldr", "0", "2", "3"],
+  old: { label: "C (run-time state machine)",
+    asm: [
+      "boot_state:",
+      "    movs  r3, #0",
+      "    ldr   r1, =boot_seq",
+      "    mov   r0, r3",
+      "step: cmp r0, #1",
+      "    ldrb  r2, [r1], #1",
+      "    beq   in_boot",
+      "    cmp   r0, #2",
+      "    beq   in_safe",
+      "    cbnz  r0, again",
+      "    clz   r0, r2",
+      "    lsrs  r0, r0, #5",
+      "again: adds r3, #1",
+      "    cmp   r3, #3",
+      "    bne   step",
+      "    bx    lr",
+      "in_boot: cmp r2, #1",
+      "    it    eq",
+      "    moveq r0, #2",
+      "    b     again",
+      "in_safe: cmp r2, #2",
+      "    it    eq",
+      "    moveq r0, #3",
+      "    b     again",
+    ],
+    flash: 59, ram: 0, run: 36, runNote: "instructions to reach Nominal" },
+  now: { flash: 4, ram: 0, run: 2, runNote: "instructions" },
+  why: "Both versions describe the same state machine with the same table, and both are equally readable. The difference is a guarantee. A C compiler may fold a loop like this or may not (GCC at -Os doesn't). consteval forbids run-time evaluation, so if the sequence ever stops being computable at compile time, the build fails instead of quietly growing 55 bytes.",
+  refs: "Harel, 'Statecharts', Sci. Comput. Programming 8(3), 1987. Samek, Practical UML Statecharts in C/C++, 2008. ISO/IEC 14882:2020 [dcl.constexpr] (consteval), P1073.",
+},
+];
+
+/* ---------------- state ---------------- */
+const KEY = "apogee.v1";
+let save = { solved: {}, at: 0 };
+try { const s = JSON.parse(localStorage.getItem(KEY)); if (s && s.solved) save = s; } catch (e) {}
+function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
+let run = { hints: 0, fails: 0, used: new Set() };
+
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+const unlocked = i => i === 0 || !!save.solved[LEVELS[i - 1].id];
+const total = l => l.flash + l.ram;
+const oldName = L => L.old.label.startsWith("C++03") ? "C++03" : "C";
+
+/* ---------------- gauges ---------------- */
+function gauges() {
+  let mass = 0, score = 0;
+  LEVELS.forEach(L => { const s = save.solved[L.id]; if (s) { mass += total(L.old) - total(L.now); score += s.score; } });
+  $("#g-mass").textContent = mass + " B";
+  $("#g-score").textContent = score;
+}
+
+/* ---------------- orbit ---------------- */
+function orbit() {
+  const svg = $("#orbit");
+  const cx = 400, cy = 190, rx = 370, ry = 165, c = Math.sqrt(rx * rx - ry * ry);
+  const allDone = LEVELS.every(L => save.solved[L.id]);
+  const pt = t => [cx + rx * Math.cos(t), cy - ry * Math.sin(t)];
+  let h = `<defs><radialGradient id="earth"><stop offset="0" stop-color="#7fe0e8"/><stop offset="1" stop-color="#2d5fa8"/></radialGradient></defs>`;
+  h += `<path d="M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 1 ${cx + rx} ${cy}" fill="none" stroke="#2e3672" stroke-width="2" stroke-dasharray="4 6"/>`;
+  // progress arc
+  const doneCount = LEVELS.filter(L => save.solved[L.id]).length;
+  if (doneCount) {
+    const tEnd = allDone ? 0 : Math.PI - doneCount * Math.PI / 8;
+    const [ex, ey] = pt(tEnd);
+    h += `<path d="M ${cx - rx} ${cy} A ${rx} ${ry} 0 0 1 ${ex.toFixed(1)} ${ey.toFixed(1)}" fill="none" stroke="#7fe0e8" stroke-width="2.5"/>`;
+  }
+  h += `<circle cx="${cx - c}" cy="${cy}" r="16" fill="url(#earth)"/>`;
+  h += `<text x="${cx + rx - 4}" y="${cy - 8}" fill="${allDone ? "#ffb547" : "#9a9ed0"}" font-size="12" text-anchor="end" font-family="Chakra Petch, sans-serif">apogee</text>`;
+  LEVELS.forEach((L, i) => {
+    const [x, y] = pt(Math.PI - (i + 1) * Math.PI / 8);
+    const done = !!save.solved[L.id], cur = i === save.at && !allDone, open = unlocked(i);
+    const cls = ["wp", done ? "done" : "", cur ? "current" : ""].join(" ");
+    const fill = done ? "#7fe0e8" : "#10142e";
+    const stroke = cur ? "#ffb547" : done ? "#7fe0e8" : open ? "#9a9ed0" : "#2e3672";
+    const above = y < 60 ? 22 : -16;
+    h += `<g class="${cls}" data-i="${i}" tabindex="${open ? 0 : -1}" role="button" aria-disabled="${!open}" aria-label="Level ${i + 1}: ${L.cat}${done ? ", complete" : open ? "" : ", locked"}">
+      <circle class="ring" cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${cur ? 11 : 8}" fill="${fill}" stroke="${stroke}" stroke-width="2"/>
+      <text x="${x.toFixed(1)}" y="${(y + above).toFixed(1)}" text-anchor="middle">${i + 1}<tspan class="nm"> ${esc(L.short)}</tspan></text></g>`;
+  });
+  // probe
+  // probe: just ahead of the current waypoint, nose along the orbit
+  const shipT = allDone ? 0.0001 : Math.PI - (Math.min(save.at, 6) + 1.5) * Math.PI / 8;
+  const [sx, sy] = pt(shipT);
+  const ang = Math.atan2(-ry * Math.cos(shipT), -rx * Math.sin(shipT)) * 180 / Math.PI + 90;
+  h += `<g transform="translate(${sx.toFixed(1)} ${sy.toFixed(1)}) rotate(${ang.toFixed(1)})" pointer-events="none" aria-hidden="true">
+    <polygon points="0,-9 6,6 0,2 -6,6" fill="#ffb547"/></g>`;
+  svg.innerHTML = h;
+  svg.querySelectorAll(".wp").forEach(g => {
+    const go = () => { const i = +g.dataset.i; if (unlocked(i)) { save.at = i; persist(); show(); } };
+    g.addEventListener("click", go);
+    g.addEventListener("keydown", e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } });
+  });
+}
+
+/* ---------------- rendering ---------------- */
+function hlSrc(s) {
+  const kw = /\b(constexpr|constinit|consteval|template|struct|class|concept|requires|auto|volatile|inline|explicit|return|static_assert|enum)\b/g;
+  return s.split("\n").map(line => {
+    const at = line.indexOf("//");
+    const code = at >= 0 ? line.slice(0, at) : line, cm = at >= 0 ? line.slice(at) : "";
+    return esc(code).replace(kw, '<span class="kw">$1</span>') + (cm ? '<span class="cm">' + esc(cm) + '</span>' : "");
+  }).join("\n");
+}
+function asmLine(text, n, blankHtml) {
+  // split off comment
+  const at = text.indexOf("@");
+  let code = at >= 0 ? text.slice(0, at) : text, cmt = at >= 0 ? text.slice(at) : "";
+  let html = esc(code);
+  if (/^\S.*:/.test(code)) html = html.replace(/^([\w.]+:)/, '<span class="lbl">$1</span>');
+  else html = html.replace(/^(\s+)(\.[\w]+)/, '$1<span class="dir">$2</span>').replace(/^(\s+)([a-z][a-z0-9.]*)(?=\s)/, '$1<span class="op">$2</span>');
+  if (blankHtml) html = html.replace(/\{(\d)\}/g, (_, k) => blankHtml(+k));
+  cmt = esc(cmt);
+  if (blankHtml) cmt = cmt.replace(/\{(\d)\}/g, (_, k) => blankHtml(+k));
+  return `<div class="ln" data-ln="${n}"><span class="no">${n}</span><span>${html}${cmt ? '<span class="c">' + cmt + '</span>' : ""}</span></div>`;
+}
+function listing(lines, fill) {
+  return lines.map((t, i) => {
+    if (fill) t = t.replace(/\{(\d)\}/g, (_, k) => fill[+k]);
+    return asmLine(t, i + 1);
+  }).join("");
+}
+
+function show() {
+  const main = $("#main");
+  orbit(); gauges();
+  if (LEVELS.every(L => save.solved[L.id]) && save.at === LEVELS.length) return finale();
+  const i = Math.min(save.at, LEVELS.length - 1), L = LEVELS[i];
+  run = { hints: 0, fails: 0, used: new Set() };
+  const solved = save.solved[L.id];
+  main.innerHTML = `
+  <section class="level" aria-labelledby="lvl-title">
+    <article class="card brief">
+      <p class="cat">Level ${i + 1} of 7: ${esc(L.cat)}, ${esc(L.pattern)}</p>
+      <h2 id="lvl-title">${esc(L.title)}</h2>
+      <span class="std">${esc(L.std)}</span>
+      <p>${esc(L.brief)}</p>
+      <pre class="src" aria-label="C++ source">${hlSrc(L.src)}</pre>
+      <p class="refs">${esc(L.refs)}</p>
+    </article>
+    <article class="card">
+      <div class="asmhead"><h3>Fill in the Cortex-M4 output</h3><small>arm-none-eabi-g++ -std=c++20 -Os</small></div>
+      <div class="asm" id="asm">${L.asm.map((t, n) => asmLine(t, n + 1, k => {
+        const w = Math.max(4, ...L.blanks[k].ans.map(a => String(a).length + 1));
+        return `<input class="blank" data-k="${k}" size="${w}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Blank ${k + 1} of ${L.blanks.length}" placeholder="${k + 1}">`;
+      })).join("")}</div>
+      <div class="bank" id="bank" aria-label="Word bank">${L.bank.map(w => `<button type="button">${esc(w)}</button>`).join("")}</div>
+      <p class="bank-note">Type into a blank or tap a word to drop it into the selected blank. Hints cost 25 points.</p>
+      <div class="actions">
+        <button class="btn primary" id="assemble">Assemble</button>
+        <button class="btn" id="hint">Hint</button>
+      </div>
+      <div class="console" id="console" role="status" aria-live="polite">${solved ? '<span class="s">Already in orbit. Replay it or pick another waypoint.</span>' : "$ arm-none-eabi-as apogee.s"}</div>
+    </article>
+    <div id="debrief" class="debrief"></div>
+  </section>`;
+
+  const inputs = [...main.querySelectorAll(".blank")];
+  let focused = inputs[0];
+  inputs.forEach(inp => {
+    inp.addEventListener("focus", () => focused = inp);
+    inp.addEventListener("input", () => inp.classList.remove("ok", "bad"));
+    inp.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); assemble(L, i); } });
+  });
+  $("#bank").addEventListener("click", e => {
+    const b = e.target.closest("button"); if (!b) return;
+    const target = (focused && !focused.classList.contains("ok")) ? focused : inputs.find(x => !x.value) || inputs[0];
+    target.value = b.textContent; target.classList.remove("ok", "bad");
+    const nxt = inputs.find(x => !x.value); (nxt || target).focus();
+  });
+  $("#assemble").addEventListener("click", () => assemble(L, i));
+  $("#hint").addEventListener("click", () => hint(L));
+  if (solved) debrief(L, i, true);
+}
+
+/* ---------------- checking ---------------- */
+function parseNum(v) {
+  v = v.trim().replace(/^#/, "");
+  const ch = v.match(/^'(.)'$/); if (ch) return ch[1].charCodeAt(0);
+  if (/^0x[0-9a-f]+$/i.test(v)) return parseInt(v, 16);
+  if (/^-?\d+$/.test(v)) return parseInt(v, 10);
+  return NaN;
+}
+function correct(b, v) {
+  if (b.num) return b.ans.includes(parseNum(v));
+  const w = v.trim().toLowerCase().replace(/^\./, "");
+  return b.ans.includes(w);
+}
+function lineOf(L, k) { return L.asm.findIndex(t => t.includes("{" + k + "}")) + 1; }
+
+function assemble(L, i) {
+  const inputs = [...document.querySelectorAll(".blank")];
+  document.querySelectorAll(".ln.err").forEach(n => n.classList.remove("err"));
+  const out = [];
+  let ok = true;
+  inputs.forEach(inp => {
+    const k = +inp.dataset.k, b = L.blanks[k], v = inp.value;
+    if (!v.trim()) { ok = false; inp.classList.add("bad"); out.push(`<span class="e">apogee.s:${lineOf(L, k)}: Error: blank ${k + 1} is empty</span>`); }
+    else if (correct(b, v)) inp.classList.add("ok");
+    else {
+      ok = false; inp.classList.add("bad");
+      out.push(`<span class="e">apogee.s:${lineOf(L, k)}: Error: '${esc(v.trim())}' doesn't fit here: ${esc(b.err)}</span>`);
+    }
+    if (inp.classList.contains("bad")) document.querySelector(`.ln[data-ln="${lineOf(L, k)}"]`)?.classList.add("err");
+  });
+  const con = $("#console");
+  if (!ok) { run.fails++; con.innerHTML = out.join("\n"); return; }
+  const prev = save.solved[L.id];
+  const score = Math.max(20, 100 - 25 * run.hints - 10 * run.fails);
+  const saved = total(L.old) - total(L.now);
+  con.innerHTML = `<span class="s">Assembled. ${L.now.flash} bytes of flash, ${saved} bytes lighter than ${esc(oldName(L))}. +${score} points.</span>`;
+  if (!prev || score > prev.score) save.solved[L.id] = { score };
+  persist(); orbit(); gauges();
+  debrief(L, i, false);
+}
+function hint(L) {
+  const inputs = [...document.querySelectorAll(".blank")];
+  const k = inputs.findIndex(inp => !correct(L.blanks[+inp.dataset.k], inp.value));
+  if (k < 0) { $("#console").innerHTML = '<span class="s">Every blank is right. Press Assemble.</span>'; return; }
+  const key = +inputs[k].dataset.k;
+  if (!run.used.has(key)) { run.used.add(key); run.hints++; }
+  $("#console").innerHTML = `<span class="h">hint, blank ${key + 1} (line ${lineOf(L, key)}): ${esc(L.blanks[key].hint)}</span>`;
+  inputs[k].focus();
+}
+
+/* ---------------- debrief ---------------- */
+function bars(label, unit, o, n, oldLabel) {
+  const max = Math.max(o, n, 1);
+  const fmt = v => v.toLocaleString("en-US") + unit;
+  return `<div class="metric"><div class="mh"><b>${label}</b></div>
+    <div class="bar o"><span>${esc(oldLabel)}</span><div class="track"><div class="fill" style="width:0" data-w="${(o / max * 100).toFixed(1)}%"></div></div><span class="v">${fmt(o)}</span></div>
+    <div class="bar n"><span>C++</span><div class="track"><div class="fill" style="width:0" data-w="${(n / max * 100).toFixed(1)}%"></div></div><span class="v">${fmt(n)}</span></div></div>`;
+}
+function debrief(L, i, quiet) {
+  const answers = L.blanks.map(b => String(b.ans[0]));
+  const oldShort = oldName(L);
+  const last = i === LEVELS.length - 1;
+  $("#debrief").innerHTML = `<section class="card" aria-label="Debrief">
+    <h3>${total(L.old) - total(L.now) > 0 ? (total(L.old) - total(L.now)) + " bytes lighter" : "Same mass, safer code"}</h3>
+    <p>${esc(L.why)}</p>
+    <div class="compare">
+      <div class="old"><h4>${esc(L.old.label)}: ${L.old.flash} B flash, ${L.old.ram} B RAM</h4><div class="asm">${listing(L.old.asm)}</div></div>
+      <div class="new"><h4>${esc(L.std)}: ${L.now.flash} B flash, ${L.now.ram} B RAM</h4><div class="asm">${listing(L.asm, answers)}</div></div>
+    </div>
+    <div class="metrics">
+      ${bars("Flash", " B", L.old.flash, L.now.flash, oldShort)}
+      ${bars("RAM", " B", L.old.ram, L.now.ram, oldShort)}
+      ${bars("Instructions executed", "", L.old.run, L.now.run, oldShort)}
+      <p class="bank-note">${esc(oldShort)}: ${esc(L.old.runNote)}. C++: ${esc(L.now.runNote)}.</p>
+    </div>
+    <div class="next-row"><button class="btn primary" id="next">${last ? "Reach apogee" : "Next waypoint: " + esc(LEVELS[i + 1].cat)}</button></div>
+  </section>`;
+  requestAnimationFrame(() => document.querySelectorAll("#debrief .fill").forEach(f => f.style.width = f.dataset.w));
+  $("#next").addEventListener("click", () => { save.at = i + 1; persist(); show(); window.scrollTo({ top: 0 }); });
+  if (!quiet) $("#debrief").scrollIntoView({ behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" });
+}
+
+/* ---------------- finale ---------------- */
+function finale() {
+  let o = 0, n = 0, score = 0;
+  LEVELS.forEach(L => { o += total(L.old); n += total(L.now); score += save.solved[L.id].score; });
+  $("#main").innerHTML = `<section class="card finale">
+    <h2>Apogee reached</h2>
+    <p>The seven subsystems weighed ${o} bytes written the C and C++03 way. Your C++14 to C++26 versions weigh ${n} bytes, ${Math.round((1 - n / o) * 100)}% less, and they never execute more instructions than the old versions; in six of the seven they execute fewer.</p>
+    <p>Score ${score} of 700.</p>
+    <p><button class="btn primary" id="again">Fly the mission again</button></p>
+  </section>`;
+  $("#again").addEventListener("click", () => { save.at = 0; persist(); show(); });
+}
+
+$("#reset").addEventListener("click", () => { save = { solved: {}, at: 0 }; persist(); show(); });
+show();
+</script>
+</body>
+</html>

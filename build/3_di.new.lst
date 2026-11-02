@@ -1,0 +1,12 @@
+
+build/3_di.new.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <altitude()>:
+   0:	ldr	r3, [pc, #4]	@ (8 <altitude()+0x8>)
+   2:	ldr	r0, [r3, #0]
+   4:	lsls	r0, r0, #1
+   6:	bx	lr
+   8:	.word	0x40012000

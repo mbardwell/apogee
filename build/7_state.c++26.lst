@@ -1,0 +1,9 @@
+
+build/7_state.c++26.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <boot_state()>:
+   0:	movs	r0, #3
+   2:	bx	lr

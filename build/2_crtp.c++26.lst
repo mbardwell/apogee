@@ -1,0 +1,12 @@
+
+build/2_crtp.c++26.o:     file format elf32-littlearm
+
+
+Disassembly of section .text:
+
+00000000 <beacon(Stm32Uart&)>:
+   0:	movw	r0, #4100	@ 0x1004
+   4:	movt	r0, #16385	@ 0x4001
+   8:	movs	r1, #75	@ 0x4b
+   a:	str	r1, [r0, #0]
+   c:	bx	lr

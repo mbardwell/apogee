@@ -1,0 +1,14 @@
+1_raii old text=32 data=4 bss=8
+1_raii new text=20 data=0 bss=8
+2_crtp old text=24 data=0 bss=0
+2_crtp new text=12 data=0 bss=0
+3_di old text=28 data=4 bss=0
+3_di new text=12 data=0 bss=1
+4_creational old text=72 data=0 bss=8
+4_creational new text=8 data=4 bss=0
+5_structural old text=64 data=0 bss=256
+5_structural new text=268 data=0 bss=0
+6_behavioral old text=28 data=0 bss=0
+6_behavioral new text=22 data=0 bss=0
+7_state old text=59 data=0 bss=0
+7_state new text=4 data=0 bss=0
